@@ -4,7 +4,7 @@ PID=${PID:-$$}
 PROC=/proc/$PID
 
 COLLECTOR_ADDR="http://192.168.13.157:8080"
-REPORT_TEMPLATE='{ "rss": %d, "read_bytes": %d, "write_bytes": %d, "cpu_usage": %d }'
+REPORT_TEMPLATE='{ "timestamp": %d, "rss": %d, "read_bytes": %d, "write_bytes": %d, "cpu_usage": %d }'
 REPORT_HEADER="Content-Type: application/json"
 REPORT_URL=$COLLECTOR_ADDR/
 FREQUENCY=1s
@@ -69,13 +69,18 @@ rss() {
   cat $PROC/status | grep "VmRSS" | cut -d":" -f2 | xargs echo | cut -d" " -f1
 }
 
-# ret: read write (B)
+# ret <Array>: read write (B)
 io() {
   cat $PROC/io | grep "^read_bytes\|^write_bytes" | cut -d":" -f2 | xargs echo
 }
 
+systime() {
+  # TODO
+  date
+}
+
 gather_facts() {
-  printf "$REPORT_TEMPLATE" $(rss) $(io) $(cpu)
+  printf "$REPORT_TEMPLATE" $(systime) $(rss) $(io) $(cpu)
 }
 
 report() {
@@ -84,6 +89,6 @@ report() {
 }
 
 while true; do
-  gather_facts | report
   sleep $FREQUENCY
+  gather_facts | report
 done
