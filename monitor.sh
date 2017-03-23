@@ -5,12 +5,13 @@ PIDFILE=/var/run/$NAME/$NAME.pid
 PID=$(cat $PIDFILE)
 
 export PID
+export NAME
 
 run_monitor() {
-  if [[ -f ~/run/gather.pid ]]; then
+  if [[ -f ~/run/gather-$NAME.pid ]]; then
     pid=$(cat ~/run/gather.pid)
     if [[ -n $pid ]]; then
-      ps -u $(whoami) | grep gather.sh
+      ps -ajx | grep gather-$NAME.sh | grep $pid
       [[ $? -eq 0 ]] && kill -9 $pid
     fi
   fi

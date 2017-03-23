@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo $$ > ~/run/gather.pid
+echo $$ > ~/run/gather-$NAME.pid
 
 PID=${PID:-$$}
 PROC=/proc/$PID
@@ -83,7 +83,7 @@ gather_facts() {
 
 report() {
   read body
-  echo $body
+  echo $body >> ~/data/alarm-system/$NAME.dump
   # curl -X POST -H "$REPORT_HEADER" -d "$body" $REPORT_URL
 }
 
