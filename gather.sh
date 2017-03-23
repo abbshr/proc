@@ -11,6 +11,9 @@ REPORT_HEADER="Content-Type: application/json"
 REPORT_URL=$COLLECTOR_ADDR/
 FREQUENCY=1s
 
+declare -i PAGE_SIZE
+PAGE_SIZE=$(( $(getconf PAGE_SIZE) / 1024 ))
+
 declare -i PROCESSORS
 declare -i TOTAL_CPUTIME
 declare -i CPUTIME
@@ -58,14 +61,15 @@ cpu() {
   local -i curr_total_cputime
   curr_cputime=$(cputime)
   curr_total_cputime=$(totalcputime)
-  bc -l <<< "scale=1; ($curr_cputime - $CPUTIME) / ($curr_total_cputime - $TOTAL_CPUTIME)"
+  bc -l <<< "scale=3; ($curr_cputime - $CPUTIME)  * 100 / ($curr_total_cputime - $TOTAL_CPUTIME)"
   CPUTIME=$curr_cputime
   TOTAL_CPUTIME=$curr_total_cputime
 }
 
 # ret: rss (KB)
 rss() {
-  cat $PROC/status | grep "VmRSS" | cut -d":" -f2 | xargs echo | cut -d" " -f1
+  # cat $PROC/status | grep "VmRSS" | cut -d":" -f2 | xargs echo | cut -d" " -f1
+  echo $(( $(cat $PROC/statm | cut -d" " -f2) * $PAGE_SIZE ))
 }
 
 # ret <Array>: read write (B)
