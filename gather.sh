@@ -1,10 +1,12 @@
 #!/bin/bash
 
+echo $$ > ~/run/gather.pid
+
 PID=${PID:-$$}
 PROC=/proc/$PID
 
 COLLECTOR_ADDR="http://192.168.13.157:8080"
-REPORT_TEMPLATE='{ "timestamp": %d, "rss": %d, "read_bytes": %d, "write_bytes": %d, "cpu_usage": %d }'
+REPORT_TEMPLATE='{ "timestamp": %d, "rss": %d, "read_bytes": %d, "write_bytes": %d, "cpu_usage": %.1f }'
 REPORT_HEADER="Content-Type: application/json"
 REPORT_URL=$COLLECTOR_ADDR/
 FREQUENCY=1s
@@ -12,9 +14,6 @@ FREQUENCY=1s
 declare -i PROCESSORS
 declare -i TOTAL_CPUTIME
 declare -i CPUTIME
-PROCESSORS=$(processors)
-TOTAL_CPUTIME=$(totalcputime)
-CPUTIME=$(cputime)
 
 # total memory (KB)
 total_memory() {
@@ -37,12 +36,12 @@ accumulate() {
   for t in ${arr[@]}; do
     sum+=$t
   done
-  echo sum
+  echo $sum
 }
 
 # utime stime cutime cstime (jiffies)
 cpustat() {
-  local raw=$(cat $PROC/stat)
+  local raw=($(cat $PROC/stat))
   echo ${raw[*]:13:4}
 }
 
@@ -59,7 +58,7 @@ cpu() {
   local -i curr_total_cputime
   curr_cputime=$(cputime)
   curr_total_cputime=$(totalcputime)
-  echo $(( ($curr_cputime - $CPUTIME) * $PROCESSORS / ($curr_total_cputime - $TOTAL_CPUTIME) ))
+  bc -l <<< "scale=1; ($curr_cputime - $CPUTIME) / ($curr_total_cputime - $TOTAL_CPUTIME)"
   CPUTIME=$curr_cputime
   TOTAL_CPUTIME=$curr_total_cputime
 }
@@ -75,8 +74,7 @@ io() {
 }
 
 systime() {
-  # TODO
-  date
+  date +%s%3N
 }
 
 gather_facts() {
@@ -85,8 +83,13 @@ gather_facts() {
 
 report() {
   read body
-  curl -X POST -H "$REPORT_HEADER" -d "$body" $REPORT_URL
+  echo $body
+  # curl -X POST -H "$REPORT_HEADER" -d "$body" $REPORT_URL
 }
+
+PROCESSORS=$(processors)
+TOTAL_CPUTIME=$(totalcputime)
+CPUTIME=$(cputime)
 
 while true; do
   sleep $FREQUENCY
