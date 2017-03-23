@@ -7,35 +7,31 @@ PID=$(cat $PIDFILE)
 export PID
 export NAME
 
-run_check() {
-  if [[ -f ~/run/monitor-$NAME.pid ]]; then
+check() {
+  local proc
+  proc=$1
+  if [[ -f ~/run/$proc-$NAME.pid ]]; then
     local pid
-    pid=$(cat ~/run/monitor-$NAME.pid)
+    pid=$(cat ~/run/$proc-$NAME.pid)
     if [[ -n $pid ]]; then
-      ps -ajx | grep monitor.sh | grep $pid
+      ps ajx | grep -v "grep" | grep $proc.sh | grep $pid
       [[ $? -eq 0 ]] && kill -9 $pid
     fi
   fi
-  echo $$ > ~/run/monitor-$NAME.pid
 }
 
-run_monitor() {
-  if [[ -f ~/run/gather-$NAME.pid ]]; then
-    local pid
-    pid=$(cat ~/run/gather-$NAME.pid)
-    if [[ -n $pid ]]; then
-      ps -ajx | grep gather.sh | grep $pid
-      [[ $? -eq 0 ]] && kill -9 $pid
-    fi
-  fi
+run() {
+  check gather
   bash gather.sh &
 }
 
-run_check
-run_monitor
+check monitor
+echo $$ > ~/run/monitor-$NAME.pid
+
+run
 
 while true; do
   sleep 10s
   # check if PID modified
-  [[ $PID != $(cat $PIDFILE) ]] && run_monitor
+  [[ $PID != $(cat $PIDFILE) ]] && run
 done

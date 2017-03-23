@@ -6,13 +6,13 @@ PID=${PID:-$$}
 PROC=/proc/$PID
 
 COLLECTOR_ADDR="http://192.168.13.157:8080"
-REPORT_TEMPLATE='{ "timestamp": %d, "rss": %d, "read_bytes": %d, "write_bytes": %d, "cpu_usage": %.1f }'
+REPORT_TEMPLATE='{ "timestamp": %d, "rss": %.3f, "read_bytes": %d, "write_bytes": %d, "cpu_usage": %.1f }'
 REPORT_HEADER="Content-Type: application/json"
 REPORT_URL=$COLLECTOR_ADDR/
 FREQUENCY=1s
 
 declare -i PAGE_SIZE
-PAGE_SIZE=$(( $(getconf PAGE_SIZE) / 1024 ))
+PAGE_SIZE=$(getconf PAGE_SIZE)
 
 declare -i PROCESSORS
 declare -i TOTAL_CPUTIME
@@ -66,10 +66,23 @@ cpu() {
   TOTAL_CPUTIME=$curr_total_cputime
 }
 
-# ret: rss (KB)
+# ret: rss (MB)
+rss_page() {
+  cat $PROC/statm | cut -d" " -f2
+}
+
+rss_bytes() {
+  read pages
+  echo $(( $pages * $PAGE_SIZE ))
+}
+
+rss_mbytes() {
+  read pages
+  bc -l <<< "scale=3; $pages * $PAGE_SIZE / 1024 / 1024"
+}
+
 rss() {
-  # cat $PROC/status | grep "VmRSS" | cut -d":" -f2 | xargs echo | cut -d" " -f1
-  echo $(( $(cat $PROC/statm | cut -d" " -f2) * $PAGE_SIZE ))
+  rss_page | rss_mbytes
 }
 
 # ret <Array>: read write (B)
