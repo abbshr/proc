@@ -33,5 +33,9 @@ run
 while true; do
   sleep 10s
   # check if PID modified
-  [[ $PID != $(cat $PIDFILE) ]] && run
+  CURR_PID=$(cat $PIDFILE)
+  if [[ $PID != $CURR_PID ]]; then
+    PID=$CURR_PID
+    run
+  fi
 done
